@@ -1,6 +1,9 @@
+from langchain_core.messages import ToolMessage
 from langchain_core.tools import BaseTool, tool
+from langgraph.prebuilt import ToolRuntime
+from langgraph.types import Command
 
-from agent.session_state import SessionState, PendingAction
+from agent.pending_action import PendingAction
 from providers.interfaces.email_provider import EmailProvider
 from tools.email.schemas import SearchEmailsToolInput, GetEmailToolInput, CreateDraftToolInput, SendEmailToolInput, \
     UpdateDraftToolInput
@@ -8,7 +11,6 @@ from tools.email.schemas import SearchEmailsToolInput, GetEmailToolInput, Create
 
 def build_email_tools(
         email_provider: EmailProvider,
-        session_state: SessionState,
 ) -> list[BaseTool]:
     @tool(args_schema=SearchEmailsToolInput)
     def search_emails(query: str):
@@ -42,7 +44,12 @@ def build_email_tools(
         }
 
     @tool(args_schema=CreateDraftToolInput)
-    def create_draft(recipients: list[str], subject: str, body: str):
+    def create_draft(
+            recipients: list[str],
+            subject: str,
+            body: str,
+            runtime: ToolRuntime
+    ) -> Command:
         """
         Create a new email draft.
 
@@ -56,24 +63,35 @@ def build_email_tools(
 
         result = email_provider.create_draft(recipients, subject, body)
 
-        session_state.pending_action = PendingAction(
+        pending_action = PendingAction(
             action="send_email",
-            data={
-                "email": result,
+            data={"email": result, }
+        )
+
+        return Command(
+            update={
+                "pending_action": pending_action,
+                "requires_confirmation":True,
+                "messages": [
+                    ToolMessage(
+                        content=str({
+                            "success": True,
+                            "result": result,
+                            "requires_confirmation": True,
+                        }),
+                        tool_call_id=runtime.tool_call_id,
+                    )
+                ]
             }
         )
-        return {
-            "success": True,
-            "result": result,
-            "requires_confirmation": True
-        }
 
     @tool(args_schema=UpdateDraftToolInput)
     def update_draft(
             recipients: list[str] | None = None,
             subject: str | None = None,
             body: str | None = None,
-    ):
+            runtime: ToolRuntime = None
+    ) -> Command:
         """
             Update a pending email draft.
 
@@ -83,7 +101,7 @@ def build_email_tools(
             Only fields explicitly requested by the user should be changed.
             This tool does not send the email.
             """
-        pending_action = session_state.pending_action
+        pending_action = runtime.state.get("pending_action")
 
         if pending_action is None:
             raise ValueError("There is no pending action")
@@ -101,19 +119,31 @@ def build_email_tools(
 
         result = email_provider.update_draft(email)
 
-        session_state.pending_action = PendingAction(
-            action="send_email",
-            data={"email": result, }
+        return Command(
+            update={
+                "pending_action": PendingAction(
+                    action="send_email",
+                    data={"email": result, }
+                ),
+                "requires_confirmation":True,
+                "messages": [
+                    ToolMessage(
+                        content=str({
+                            "success": True,
+                            "result": result,
+                            "requires_confirmation": True,
+                        }),
+                        tool_call_id=runtime.tool_call_id,
+                    )
+                ]
+            }
         )
 
-        return {
-            "success": True,
-            "result": result,
-            "requires_confirmation": True
-        }
-
     @tool(args_schema=SendEmailToolInput)
-    def send_email(draft_id: str):
+    def send_email(
+            draft_id: str,
+            runtime: ToolRuntime
+    ) -> Command:
         """
         Send an existing email draft.
 
@@ -122,7 +152,7 @@ def build_email_tools(
 
         Requires a valid draft_id.
         """
-        pending_action = session_state.pending_action
+        pending_action = runtime.state.get("pending_action")
 
         if pending_action is None:
             raise ValueError("There is no pending action.")
@@ -139,12 +169,21 @@ def build_email_tools(
 
         result = email_provider.send_email(draft_id)
 
-        session_state.pending_action = None
-
-        return {
-            "success": True,
-            "result": result,
-        }
+        return Command(
+            update={
+                "pending_action": None,
+                "requires_confirmation":False,
+                "messages": [
+                    ToolMessage(
+                        content=str({
+                            "success": True,
+                            "result": result,
+                        }),
+                        tool_call_id=runtime.tool_call_id,
+                    )
+                ]
+            }
+        )
 
     return [
         search_emails,

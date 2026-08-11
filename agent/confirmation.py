@@ -3,7 +3,7 @@ from typing import Literal
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
-from agent.session_state import PendingAction
+from agent.pending_action import PendingAction
 
 
 class PendingActionDecision(BaseModel):

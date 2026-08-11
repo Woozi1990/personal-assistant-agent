@@ -1,16 +1,24 @@
 import asyncio
 
 from langchain_core.messages import HumanMessage
+from langgraph.types import Command
 
 from agent.agent import Agent
 
 
 async def main():
-    agent_builder = Agent()
+    agent = Agent()
+
+    config = {
+        "configurable": {
+            "thread_id": "main"
+        }
+    }
+    waiting_for_confirmation = False
+
     print("Personal Assistant")
     print("Type 'exit' to stop.\n")
 
-    messages = []
     while True:
         user_input = input("> ").strip()
         if not user_input:
@@ -18,42 +26,40 @@ async def main():
         if user_input in {"exit", "quit"}:
             break
 
-        decision = agent_builder.classify_pending_action(user_input)
-        allowed_tool_names = None
-        if decision is not None:
-            if decision.decision == "confirm":
-                pending_action = agent_builder.get_pending_action()
+        if waiting_for_confirmation:
+            graph_input = Command(
+                resume=user_input
+            )
+        else:
+            graph_input = {
+                "messages":[
+                    HumanMessage(content=user_input)
+                ]
+            }
 
-                if pending_action is not None:
-                    allowed_tool_names = [pending_action.action]
-            elif decision.decision == "cancel":
-                agent_builder.clear_pending_action()
-                print("Assistant: 已取消当前待确认的操作。")
-                continue
-            elif decision.decision == "modify":
-                allowed_tool_names = ["update_draft"]
-            elif decision.decision == "other":
-                pass
-
-        messages.append(HumanMessage(content=user_input))
-
-        agent = agent_builder.build_agent(
-            messages,
-            allowed_tool_names=allowed_tool_names,
-        )
         try:
-            result = await agent.ainvoke({
-                "messages": messages,
-            })
-            messages = result["messages"]
-            final_message = messages[-1]
+            result = await agent.graph.ainvoke(
+                graph_input,
+                config=config
+            )
+            if result.get("__interrupt__"):
+                waiting_for_confirmation = True
+                interrupt_info = result["__interrupt__"][0]
 
-            for message in result["messages"]:
-                print(type(message).__name__)
-                print(message)
-                print("=" * 50)
+                print(f"Confirmation required: {interrupt_info.value}")
 
-            print(f"Assistant: {final_message.content}")
+            else:
+                waiting_for_confirmation = False
+
+                final_message = result["messages"][-1]
+                print(f"Assistant: {final_message.content}")
+
+            # for message in result["messages"]:
+            #     print(type(message).__name__)
+            #     print(message)
+            #     print("=" * 50)
+
+
 
         except Exception as exc:
             print(f"Error: {exc}\n")

@@ -6,8 +6,3 @@ from typing import Any
 class PendingAction:
     action: str
     data:dict[str, Any]
-
-@dataclass
-class SessionState:
-    pending_action: PendingAction | None = None
-
