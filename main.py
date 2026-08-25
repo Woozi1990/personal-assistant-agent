@@ -1,12 +1,10 @@
-import asyncio
-import traceback
 
-from langchain_core.messages import HumanMessage
+import traceback
 
 from agent.agent import Agent
 
 
-async def main():
+def main():
     agent = Agent()
 
     print("Personal Assistant")
@@ -18,16 +16,12 @@ async def main():
             continue
         if user_input in {"exit", "quit"}:
             break
-
         try:
-
-            response = await agent.invoke(user_input)
-
+            response =  agent.invoke(user_input)
             print(f"Assistant: {response}")
         except Exception as e:
             traceback.print_exc()
 
 
-
 if __name__ == '__main__':
-    asyncio.run(main())
+    main()

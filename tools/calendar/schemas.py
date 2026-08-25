@@ -30,9 +30,9 @@ class CreateEventToolInput(BaseModel):
     attendees: list[str] | None = Field(
         default=None,
         description=(
-            "Email addresses of attendees explicitly provided by the user "
-            "or obtained from another tool result. "
-            "Do not guess or fabricate email addresses."
+            "Email addresses of people explicitly requested by the user "
+            "to be added as calendar attendees. Do not infer attendees "
+            "from names mentioned in the event title or description."
         )
     )
 

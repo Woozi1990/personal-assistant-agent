@@ -1,11 +1,11 @@
+from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import InMemorySaver
 
 from agent.build_tools import build_tools
-from agent.executor import Executor
-from agent.graph import AgentGraph
-from agent.model import Model
+from agent.middleware.tool_logging import tool_logging
+from agent.prompt import dynamic_system_prompt
 
 from config import AZURE_OPENAI_API_KEY, AZURE_OPENAI_MODEL, AZURE_OPENAI_BASE_URL
 
@@ -18,34 +18,33 @@ class Agent:
             model=AZURE_OPENAI_MODEL,
             temperature=0.0,
         )
-
         self._tools = build_tools()
-        self._model = Model(
-            llm=self._llm,
-            tools=self._tools,
-        )
-        self._executor = Executor(
-            tools=self._tools,
-        )
         self._checkpointer = InMemorySaver()
 
-        self._graph = AgentGraph(
-            model=self._model,
-            executor=self._executor,
-        ).build(checkpointer=self._checkpointer)
+        self._agent = create_agent(
+            model=self._llm,
+            tools=self._tools,
+            middleware=[
+                dynamic_system_prompt,
+                tool_logging,
+            ],
+            checkpointer=self._checkpointer,
+        )
 
-    async def invoke(
+    def invoke(
             self,
             user_input: str,
-            thread_id:str = "default"
+            thread_id: str = "default"
     ):
-        result = await self._graph.ainvoke(
+        result = self._agent.invoke(
             {
                 "messages":
-                    HumanMessage(content=user_input)
+                    [
+                        HumanMessage(content=user_input)
+                    ]
             },
             config={
-                "configurable":{
+                "configurable": {
                     "thread_id": thread_id
                 }
             }

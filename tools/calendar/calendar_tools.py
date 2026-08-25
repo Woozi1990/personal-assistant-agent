@@ -35,9 +35,15 @@ def build_calendar_tools(
         If the user does not specify an end time, use a default duration
         of one hour.
 
+        Only include attendees when the user explicitly asks to invite or
+        add people to the calendar event.
+
+        Mentioning a person's name as part of the event does not mean that
+        the person should be added as an attendee.
+
         The attendees argument must contain real email addresses.
-        If the user provides only a person's name, use an available
-        contact tool to obtain the email address first.
+        If an attendee is identified only by name, obtain the email address
+        using an available contact tool before creating the event.
 
         Never invent or guess an attendee email address.
 
