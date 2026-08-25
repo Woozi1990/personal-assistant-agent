@@ -1,10 +1,27 @@
-from dataclasses import dataclass
+from pydantic import BaseModel, Field
 
 
-@dataclass
-class Contact:
-    id: str
-    given_name: str | None = None
-    family_name: str | None = None
-    emails: list[str] | None = None
-    phone_numbers: list[str] | None = None
+class Contact(BaseModel):
+    id: str = Field(
+        description="Unique Google contact ID."
+    )
+
+    given_name: str | None = Field(
+        default=None,
+        description="Contact's given name."
+    )
+
+    family_name: str | None = Field(
+        default=None,
+        description="Contact's family name."
+    )
+
+    emails: list[str] = Field(
+        default_factory=list,
+        description="Email addresses saved for this contact."
+    )
+
+    phone_numbers: list[str] = Field(
+        default_factory=list,
+        description="Phone numbers saved for this contact."
+    )

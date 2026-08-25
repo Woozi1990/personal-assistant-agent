@@ -1,13 +1,19 @@
-from dataclasses import dataclass
 from datetime import datetime
 
+from pydantic import BaseModel, Field
 
-@dataclass
-class CalendarEvent:
-    id:str
-    title:str
-    start_time:datetime
-    end_time:datetime
-    location:str|None
-    attendees:list[str]|None
-    status:str
+
+class CalendarEvent(BaseModel):
+    id: str = Field(description="Unique identifier")
+    title: str = Field(description="Title of the event")
+    start_time: datetime = Field(description="Start time of the event")
+    end_time: datetime = Field(description="End time of the event")
+    location: str | None = Field(
+        default=None,
+        description="Location of the event",
+    )
+    attendees: list[str] | None = Field(
+        default=None,
+        description="List of attendees' email addresses",
+    )
+    status: str = Field(description="Status of the event")

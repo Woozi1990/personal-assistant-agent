@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from models.calendar_event import CalendarEvent
+
 
 class CreateEventToolInput(BaseModel):
     title: str = Field(
@@ -28,10 +30,9 @@ class CreateEventToolInput(BaseModel):
     attendees: list[str] | None = Field(
         default=None,
         description=(
-            "Email addresses of event attendees. "
-            "Use only email addresses explicitly provided by the user "
-            "or returned by a tool result. "
-            "Do not infer, guess, or fabricate email addresses from attendee names."
+            "Email addresses of attendees explicitly provided by the user "
+            "or obtained from another tool result. "
+            "Do not guess or fabricate email addresses."
         )
     )
 
@@ -109,3 +110,28 @@ class CheckAvailabilityToolInput(BaseModel):
     end_time: str = Field(
         description="End of the time range to check in ISO 8601 format."
     )
+
+
+class CreateEventToolOutput(BaseModel):
+    success: bool = Field(description="Whether the calendar event create completed successfully.")
+    event: CalendarEvent = Field(
+        description="The newly created event, including its generated event ID and saved event information.")
+
+
+class ListEventsToolOutput(BaseModel):
+    success: bool = Field(description="Whether the calendar event search completed successfully.")
+    events: list[CalendarEvent] = Field(description="List of saved calendar event matching the search query.")
+
+
+class UpdateEventToolOutput(BaseModel):
+    success: bool = Field(description="Whether the calendar event update completed successfully.")
+    event: CalendarEvent = Field(description="The updated event, including its event ID and current event information.")
+
+
+class DeleteEventToolOutput(BaseModel):
+    success: bool = Field(description="Whether the calendar event delete completed successfully.")
+    event_id: str = Field(description="Unique ID of the existing calendar event to delete.")
+
+class CheckAvailabilityToolOutput(BaseModel):
+    success:bool = Field(description="Whether the calendar event check completed successfully.")
+    is_available: bool = Field(description="Whether it is available in the period of time.")

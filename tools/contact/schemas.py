@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from models.contact import Contact
+
 
 class CreateContactToolInput(BaseModel):
     given_name: str | None = Field(
@@ -52,8 +54,8 @@ class UpdateContactToolInput(BaseModel):
     phone_numbers: list[str] | None = Field(
         default=None,
         description=(
-            "Updated email addresses for the contact, if they should be changed. "
-            "Do not guess or fabricate email addresses."
+            "Updated phone numbers for the contact, if they should be changed. "
+            "Do not guess or fabricate phone numbers."
         )
     )
 
@@ -66,6 +68,7 @@ class SearchContactToolInput(BaseModel):
         )
     )
 
+
 class DeleteContactToolInput(BaseModel):
     contact_id: str = Field(
         description=(
@@ -73,4 +76,39 @@ class DeleteContactToolInput(BaseModel):
             "Use a contact ID returned by a contact search result; "
             "do not invent or guess this value."
         )
+    )
+
+
+class CreateContactToolOutput(BaseModel):
+    success: bool = Field(
+        description="Whether the contact create completed successfully."
+    )
+    contact: Contact = Field(
+        description="The newly created contact, including its generated contact ID and saved contact information."
+    )
+
+
+class UpdateContactToolOutput(BaseModel):
+    success: bool = Field(
+        description="Whether the contact update completed successfully."
+    )
+    contact: Contact = Field(
+        description="The updated contact, including its contact ID and current contact information."
+    )
+
+
+class SearchContactToolOutput(BaseModel):
+    success: bool = Field(
+        description="Whether the contact search completed successfully.")
+    contacts: list[Contact] = Field(
+        description="List of saved contacts matching the search query."
+    )
+
+
+class DeleteContactToolOutput(BaseModel):
+    success: bool = Field(
+        description="Whether the contact delete completed successfully."
+    )
+    contact_id: str = Field(
+        description="Deleted contact ID"
     )

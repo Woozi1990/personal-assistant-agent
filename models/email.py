@@ -1,15 +1,15 @@
-from dataclasses import dataclass
 from datetime import datetime
 
+from pydantic import BaseModel, Field
 
-@dataclass
-class Email:
-    id: str
-    thread_id: str | None = None
-    draft_id: str | None = None
-    sender: str | None = None
-    recipients: list[str] | None = None
-    subject: str | None = None
-    body: str | None = None
-    received_at: datetime | None = None
-    snippet: str | None = None
+
+class Email(BaseModel):
+    id: str = Field(description="The id of the email.")
+    thread_id: str | None = Field(default=None,description="The thread id of the email.")
+    draft_id: str | None = Field(default=None,description="The draft id of the email.")
+    sender: str | None = Field(default=None,description="The sender of the email.")
+    recipients: list[str] | None = Field(default=None,description="The recipients of the email.")
+    subject: str | None = Field(default=None,description="The subject of the email.")
+    body: str | None = Field(default=None,description="The body of the email.")
+    received_at: datetime | None = Field(default=None,description="The received at of the email.")
+    snippet: str | None = Field(default=None,description="The snippet of the email.")

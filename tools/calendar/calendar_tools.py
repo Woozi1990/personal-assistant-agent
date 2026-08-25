@@ -10,7 +10,8 @@ from tools.calendar.schemas import (
     ListEventsToolInput,
     UpdateEventToolInput,
     DeleteEventToolInput,
-    CheckAvailabilityToolInput
+    CheckAvailabilityToolInput, CreateEventToolOutput, ListEventsToolOutput, UpdateEventToolOutput,
+    DeleteEventToolOutput, CheckAvailabilityToolOutput
 )
 
 
@@ -18,46 +19,65 @@ def build_calendar_tools(
         calendar_provider: CalendarProvider,
 ) -> list[BaseTool]:
     @tool(args_schema=CreateEventToolInput)
-    async def create_event(
+    def create_event(
             title: str,
             start_time: str,
             end_time: str | None = None,
             location: str | None = None,
             attendees: list[str] | None = None,
-    ):
+    ) -> CreateEventToolOutput:
         """
-        Create a calendar event for the user.
-        Use this tool when the user asks to schedule a meeting,
-        appointment, event, or reminder at a specific date and time.
+        Create a calendar event.
 
-        The requested time must already have been confirmed as available.
+        Before creating an event, use check_availability to check the
+        requested time range. Only create the event if is_available=True.
+
+        If the user does not specify an end time, use a default duration
+        of one hour.
+
+        The attendees argument must contain real email addresses.
+        If the user provides only a person's name, use an available
+        contact tool to obtain the email address first.
+
+        Never invent or guess an attendee email address.
+
+        Output:
+        - success: whether the creation completed successfully
+        - event: created calendar event
+            - id
+            - title
+            - start_time
+            - end_time
+            - location
+            - attendees
+            - status
         """
 
-        parsed_start_time = datetime.fromisoformat(start_time)
+        parsed_start_time = _parse_datetime(start_time)
 
         if end_time:
-            parsed_end_time = datetime.fromisoformat(end_time)
+            parsed_end_time = _parse_datetime(end_time)
         else:
             parsed_end_time = parsed_start_time + timedelta(hours=1)
 
-        event = await calendar_provider.create_event(
+        event = calendar_provider.create_event(
             title=title,
             start_time=parsed_start_time,
             end_time=parsed_end_time,
             location=location,
             attendees=attendees)
 
-        return {
-            "success": True,
-            "event": event
-        }
+        return CreateEventToolOutput(
+            success=True,
+            event=event,
+        )
 
     @tool(args_schema=ListEventsToolInput)
-    async def list_events(
+    def list_events(
             start_time: str,
             end_time: str,
             query: str | None = None
-    ):
+    ) -> ListEventsToolOutput:
         """
         Search calendar events requested by the user.
 
@@ -69,23 +89,34 @@ def build_calendar_tools(
         - morning: 08:00:00 to 12:00:00
         - afternoon: 12:00:00 to 18:00:00
         - evening: 18:00:00 to 23:59:59
+
+        Output:
+        - success: whether the search completed successfully
+        - events: matching saved calendar events
+            - id
+            - title
+            - start_time
+            - end_time
+            - location
+            - attendees
+            - status
         """
 
         parsed_start_time = _parse_datetime(start_time)
         parsed_end_time = _parse_datetime(end_time)
 
-        events = await calendar_provider.list_events(
+        events = calendar_provider.list_events(
             start_time=parsed_start_time,
             end_time=parsed_end_time,
             query=query,
         )
-        return {
-            "success": True,
-            "events": events
-        }
+        return ListEventsToolOutput(
+            success=True,
+            events=events,
+        )
 
     @tool(args_schema=UpdateEventToolInput)
-    async def update_event(
+    def update_event(
             event_id: str,
             title: str,
             start_time: str,
@@ -93,19 +124,31 @@ def build_calendar_tools(
             event_status: str,
             location: str | None = None,
             attendees: list[str] | None = None,
-    ):
+    ) -> UpdateEventToolOutput:
         """
         Update an existing calendar event.
 
-        Use this tool when the user wants to change an existing meeting,
-        appointment, event, or reminder.
+        Use this tool when the user wants to modify an existing event.
 
-        This tool requires the existing event ID and current event details.
-        Do not use it to create a new event.
+        The event_id must come from a previous tool result and must not be invented.
+
+        If the event time is being changed, first use check_availability
+        for the new time range. Only update the event if is_available=True.
+
+        Output:
+        - success: whether the update completed successfully
+        - event: updated event
+            - id
+            - title
+            - start_time
+            - end_time
+            - location
+            - attendees
+            - status
         """
 
-        parsed_start_time = datetime.fromisoformat(start_time)
-        parsed_end_time = datetime.fromisoformat(end_time)
+        parsed_start_time = _parse_datetime(start_time)
+        parsed_end_time = _parse_datetime(end_time)
 
         event = CalendarEvent(
             id=event_id,
@@ -116,54 +159,59 @@ def build_calendar_tools(
             attendees=attendees,
             status=event_status
         )
-        updated_event =await calendar_provider.update_event(event)
-        return {
-            "success": True,
-            "event": updated_event
-        }
+        updated_event = calendar_provider.update_event(event)
+        return UpdateEventToolOutput(
+            success=True,
+            event=updated_event,
+        )
 
     @tool(args_schema=DeleteEventToolInput)
-    async def delete_event(event_id: str, ):
+    def delete_event(event_id: str, ) -> DeleteEventToolOutput:
         """
         Delete a calendar event for the user.
         Use this tool when the user asks to delete a meeting,
         appointment, event, or reminder at a specific date and time.
 
         When deleting an existing calendar event, first search for the event to obtain its event ID and current details.
+
+        Output:
+        - success: whether the deletion completed successfully
+        - event_id: deleted event ID
         """
 
-        await calendar_provider.delete_event(event_id)
+        calendar_provider.delete_event(event_id)
 
-        return {
-            "success": True,
-            "event_id": event_id
-        }
+        return DeleteEventToolOutput(
+            success=True,
+            event_id=event_id
+        )
 
     @tool(args_schema=CheckAvailabilityToolInput)
-    async def check_availability(
+    def check_availability(
             start_time: str,
             end_time: str,
-    ):
+    ) -> CheckAvailabilityToolOutput:
         """
-        Check whether a specific time range is available.
+        Check whether a requested calendar time range is available.
 
-        This tool is required before creating or rescheduling a calendar
-        event at a specific time.
+        Output:
+        - success: Whether the calendar event check completed successfully.
+        - is_available: Whether the calendar event is available in the time range from start_time to end_time.
 
-        Use list_events instead for general schedule questions such as
-        "Am I free tomorrow?" or "What do I have tomorrow?".
+        This tool produces the availability result required by
+        calendar operations that create or reschedule an event.
         """
         parsed_start_time = _parse_datetime(start_time)
         parsed_end_time = _parse_datetime(end_time)
 
-        is_available = await calendar_provider.check_availability(
+        is_available = calendar_provider.check_availability(
             start_time=parsed_start_time,
             end_time=parsed_end_time,
         )
-        return {
-            "success": True,
-            "is_available": is_available,
-        }
+        return CheckAvailabilityToolOutput(
+            success=True,
+            is_available=is_available,
+        )
 
     def _parse_datetime(value: str) -> datetime:
         parsed = datetime.fromisoformat(value)

@@ -90,6 +90,21 @@ class GmailProvider(EmailProvider):
             body=body,
         )
 
+    def get_draft(self, draft_id: str) -> Email:
+        with self._lock:
+            draft = self.email_client.users().drafts().get(
+                userId="me",
+                id=draft_id,
+                format="full",
+            ).execute()
+
+        message = draft["message"]
+        email = self._parse_email(message)
+        email.draft_id=draft["id"]
+        email.body = self._parse_email_body(message["payload"])
+
+        return email
+
     def update_draft(self, email: Email) -> Email:
         if not email.draft_id:
             raise ValueError("Draft id is required")

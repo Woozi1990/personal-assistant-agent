@@ -13,6 +13,9 @@ class EmailProvider(Protocol):
     def create_draft(self, recipients: list[str], subject: str, body: str) -> Email:
         ...
 
+    def get_draft(self, draft_id: str) -> Email:
+        ...
+
     def update_draft(self, email:Email) -> Email:
         ...
 

@@ -2,8 +2,16 @@ from langchain_core.tools import BaseTool, tool
 
 from models.contact import Contact
 from providers.interfaces.contact_provider import ContactProvider
-from tools.contact.schemas import SearchContactToolInput, CreateContactToolInput, UpdateContactToolInput, \
-    DeleteContactToolInput
+from tools.contact.schemas import (
+    SearchContactToolInput,
+    CreateContactToolInput,
+    UpdateContactToolInput,
+    DeleteContactToolInput,
+    SearchContactToolOutput,
+    CreateContactToolOutput,
+    UpdateContactToolOutput,
+    DeleteContactToolOutput
+)
 
 
 def build_contact_tools(
@@ -15,7 +23,7 @@ def build_contact_tools(
             family_name: str | None = None,
             emails: list[str] | None = None,
             phone_numbers: list[str] | None = None,
-    ):
+    ) -> CreateContactToolOutput:
         """
         Create a new saved contact.
 
@@ -24,14 +32,23 @@ def build_contact_tools(
 
         The contact may include a name, email address, phone number,
         or other supported contact information.
+
+        Output:
+        - success: whether the creation completed successfully
+        - contact: created contact
+            - id
+            - given_name
+            - family_name
+            - emails
+            - phone_numbers
         """
 
-        contact = contact_provider.create_contact(given_name,family_name, emails, phone_numbers)
+        contact = contact_provider.create_contact(given_name, family_name, emails, phone_numbers)
 
-        return {
-            "success": True,
-            "contact": contact,
-        }
+        return CreateContactToolOutput(
+            success=True,
+            contact=contact
+        )
 
     @tool(args_schema=UpdateContactToolInput)
     def update_contact(
@@ -40,7 +57,7 @@ def build_contact_tools(
             family_name: str | None = None,
             emails: list[str] | None = None,
             phone_numbers: list[str] | None = None,
-    ):
+    ) -> UpdateContactToolOutput:
         """
         Update an existing saved contact.
 
@@ -49,6 +66,16 @@ def build_contact_tools(
 
         This tool requires the existing contact's contact_id.
         It does not create a new contact.
+
+
+        Output:
+        - success: whether the update completed successfully
+        - contact: updated contact
+            - id
+            - given_name
+            - family_name
+            - emails
+            - phone_numbers
         """
         contact = Contact(
             id=contact_id,
@@ -60,35 +87,38 @@ def build_contact_tools(
 
         updated_contact = contact_provider.update_contact(contact)
 
-        return {
-            "success": True,
-            "contact": updated_contact,
-        }
+        return UpdateContactToolOutput(
+            success=True,
+            contact=updated_contact
+        )
 
-    @tool(
-        "search_saved_contacts",
-        args_schema=SearchContactToolInput)
-    def search_contact(query: str):
+    @tool(args_schema=SearchContactToolInput)
+    def search_contact(query: str) -> SearchContactToolOutput:
         """
         Search the user's saved contacts.
 
         Use this tool when the user wants to find a saved contact,
-        or when the current task requires contact information that
-        has not been explicitly provided, such as an email address
-        or phone number.
+        or when another task requires contact information.
 
-        Returns matching saved contacts and their contact details.
+        Output:
+        - success: whether the search completed successfully
+        - contacts: matching saved contacts
+          - id: contact ID
+          - given_name: given name
+          - family_name: family name
+          - emails: saved email addresses
+          - phone_numbers: saved phone numbers
         """
 
         contacts = contact_provider.search_contact(query)
 
-        return {
-            "success": True,
-            "contacts": contacts,
-        }
+        return SearchContactToolOutput(
+            success=True,
+            contacts=contacts
+        )
 
     @tool(args_schema=DeleteContactToolInput)
-    def delete_contact(contact_id: str):
+    def delete_contact(contact_id: str) -> DeleteContactToolOutput:
         """
         Delete an existing saved contact.
 
@@ -96,13 +126,18 @@ def build_contact_tools(
         organization from their saved contacts.
 
         This tool requires the existing contact's contact_id.
+
+        Output:
+        - success: whether the deletion completed successfully
+        - id: contact ID of the deleted contact
+
         """
         contact_provider.delete_contact(contact_id)
 
-        return {
-            "success": True,
-            "contact_id": contact_id,
-        }
+        return DeleteContactToolOutput(
+            success=True,
+            contact_id=contact_id
+        )
 
     return [
         create_contact,

@@ -1,29 +1,55 @@
+from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import InMemorySaver
 
 from agent.build_tools import build_tools
-from agent.confirmation import ConfirmationHandler
-from agent.graph import build_graph
+from agent.executor import Executor
+from agent.graph import AgentGraph
+from agent.model import Model
+
 from config import AZURE_OPENAI_API_KEY, AZURE_OPENAI_MODEL, AZURE_OPENAI_BASE_URL
 
 
 class Agent:
     def __init__(self):
-        self.llm = ChatOpenAI(
+        self._llm = ChatOpenAI(
             api_key=AZURE_OPENAI_API_KEY,
             base_url=AZURE_OPENAI_BASE_URL,
             model=AZURE_OPENAI_MODEL,
-            temperature=0.2,
+            temperature=0.0,
         )
-        self.checkpointer = InMemorySaver()
 
-        self.confirmation_handler = ConfirmationHandler(self.llm)
-
-        self.tools = build_tools()
-
-        self.graph = build_graph(
-            llm=self.llm,
-            tools=self.tools,
-            checkpointer=self.checkpointer,
-            confirmation_handler = self.confirmation_handler
+        self._tools = build_tools()
+        self._model = Model(
+            llm=self._llm,
+            tools=self._tools,
         )
+        self._executor = Executor(
+            tools=self._tools,
+        )
+        self._checkpointer = InMemorySaver()
+
+        self._graph = AgentGraph(
+            model=self._model,
+            executor=self._executor,
+        ).build(checkpointer=self._checkpointer)
+
+    async def invoke(
+            self,
+            user_input: str,
+            thread_id:str = "default"
+    ):
+        result = await self._graph.ainvoke(
+            {
+                "messages":
+                    HumanMessage(content=user_input)
+            },
+            config={
+                "configurable":{
+                    "thread_id": thread_id
+                }
+            }
+        )
+
+        final_message = result["messages"][-1]
+        return final_message.content

@@ -1,19 +1,17 @@
-from langchain_core.messages import ToolMessage
 from langchain_core.tools import BaseTool, tool
-from langgraph.prebuilt import ToolRuntime
-from langgraph.types import Command
 
-from agent.pending_action import PendingAction
+from models.email import Email
 from providers.interfaces.email_provider import EmailProvider
 from tools.email.schemas import SearchEmailsToolInput, GetEmailToolInput, CreateDraftToolInput, SendEmailToolInput, \
-    UpdateDraftToolInput
+    CreateDraftToolOutput, SearchEmailsToolOutput, GetEmailToolOutput, SendEmailToolOutput, UpdateDraftToolInput, \
+    UpdateDraftToolOutput
 
 
 def build_email_tools(
         email_provider: EmailProvider,
 ) -> list[BaseTool]:
     @tool(args_schema=SearchEmailsToolInput)
-    def search_emails(query: str):
+    def search_emails(query: str) -> SearchEmailsToolOutput:
         """
         Search the user's mailbox for matching emails.
 
@@ -21,95 +19,119 @@ def build_email_tools(
         subject, topic, date, or other Gmail search criteria.
 
         Returns matching email metadata and message IDs.
-        """
-        result = email_provider.search_emails(query)
 
-        return {
-            "success": True,
-            "result": result,
-        }
+
+        Output:
+        - success: whether the search completed successfully
+        - emails: match emails
+            - id
+            - thread_id
+            - draft_id
+            - sender
+            - recipients
+            - subject
+            - body
+            - received_at
+            - snippet
+        """
+        emails = email_provider.search_emails(query)
+
+        return SearchEmailsToolOutput(
+            success=True,
+            emails=emails,
+        )
 
     @tool(args_schema=GetEmailToolInput)
-    def get_email(message_id: str):
+    def get_email_message(message_id: str) -> GetEmailToolOutput:
         """
-        Retrieve the full content of a specific email by message ID.
+        Retrieve the full content of a specific mailbox email message by message ID.
 
-        Use this tool when the full body of a particular email is needed.
-        Returns the email metadata and full body content.
+        Use this tool only to read an existing email message from the mailbox.
+        Do not use this tool to retrieve a person's email address.
+
+        Output:
+        - success: whether the get email completed successfully
+        - email: matching Email Message
+            - id
+            - thread_id
+            - draft_id
+            - sender
+            - recipients
+            - subject
+            - body
+            - received_at
+            - snippet
         """
-        result = email_provider.get_email(message_id)
-        return {
-            "success": True,
-            "result": result,
-        }
+        email = email_provider.get_email(message_id)
+        return GetEmailToolOutput(
+            success=True,
+            email=email,
+        )
 
     @tool(args_schema=CreateDraftToolInput)
     def create_draft(
             recipients: list[str],
             subject: str,
             body: str,
-            runtime: ToolRuntime
-    ) -> Command:
+    ) -> CreateDraftToolOutput:
         """
-        Create a new email draft.
+        Create an email draft.
 
-        Use this tool when a new email needs to be composed,
-        whether the user wants to save it as a draft or send it afterward.
+        The recipients argument must contain real email addresses.
 
-        This tool creates the draft only and does not send the email.
+        If the user provides only a person's name and no email
+        address is present in the conversation, the address must be
+        obtained from another available tool.
 
-        Returns a draft_id that can be used to send the draft.
+        Never invent or guess an email address.
+
+        Output:
+        - success: whether the create draft completed successfully
+        - draft: created Email draft
+            - id
+            - thread_id
+            - draft_id
+            - sender
+            - recipients
+            - subject
+            - body
+            - received_at
+            - snippet
         """
 
-        result = email_provider.create_draft(recipients, subject, body)
+        draft = email_provider.create_draft(recipients, subject, body)
 
-        pending_action = PendingAction(
-            action="send_email",
-            data={"email": result, }
-        )
-
-        return Command(
-            update={
-                "pending_action": pending_action,
-                "requires_confirmation":True,
-                "messages": [
-                    ToolMessage(
-                        content=str({
-                            "success": True,
-                            "result": result,
-                            "requires_confirmation": True,
-                        }),
-                        tool_call_id=runtime.tool_call_id,
-                    )
-                ]
-            }
+        return CreateDraftToolOutput(
+            success=True,
+            draft=draft,
         )
 
     @tool(args_schema=UpdateDraftToolInput)
     def update_draft(
+            draft_id: str,
             recipients: list[str] | None = None,
             subject: str | None = None,
             body: str | None = None,
-            runtime: ToolRuntime = None
-    ) -> Command:
+
+    ) -> UpdateDraftToolOutput:
         """
-            Update a pending email draft.
+        Update an existing email draft.
 
-            Use this tool when the user wants to modify the recipients,
-            subject, or body of an existing unsent draft.
+        Use this tool to modify a draft that already exists.
 
-            Only fields explicitly requested by the user should be changed.
-            This tool does not send the email.
-            """
-        pending_action = runtime.state.get("pending_action")
+        Only provide fields that should be changed.
+        Fields left as null retain their existing values.
 
-        if pending_action is None:
-            raise ValueError("There is no pending action")
+        A valid draft_id must come from an existing tool result.
+        Never invent or guess a draft_id.
 
-        email = pending_action.data.get("email")
+        Output:
+        - success: whether the draft update completed successfully
+        - result: the complete updated Email draft
+        """
 
-        if email is None:
-            raise ValueError("The draft id does not match the pending action")
+        email = email_provider.get_draft(draft_id)
+
         if recipients is not None:
             email.recipients = recipients
         if subject is not None:
@@ -117,33 +139,18 @@ def build_email_tools(
         if body is not None:
             email.body = body
 
-        result = email_provider.update_draft(email)
-
-        return Command(
-            update={
-                "pending_action": PendingAction(
-                    action="send_email",
-                    data={"email": result, }
-                ),
-                "requires_confirmation":True,
-                "messages": [
-                    ToolMessage(
-                        content=str({
-                            "success": True,
-                            "result": result,
-                            "requires_confirmation": True,
-                        }),
-                        tool_call_id=runtime.tool_call_id,
-                    )
-                ]
-            }
+        updated_draft = email_provider.update_draft(email)
+        return UpdateDraftToolOutput(
+            success=True,
+            draft=updated_draft,
         )
+
+
 
     @tool(args_schema=SendEmailToolInput)
     def send_email(
             draft_id: str,
-            runtime: ToolRuntime
-    ) -> Command:
+    ) -> SendEmailToolOutput:
         """
         Send an existing email draft.
 
@@ -151,43 +158,23 @@ def build_email_tools(
         It does not compose a new email.
 
         Requires a valid draft_id.
+
+        Output:
+        - success: whether the Email sent completed successfully
+        - message_id: sent Email Message
+
         """
-        pending_action = runtime.state.get("pending_action")
 
-        if pending_action is None:
-            raise ValueError("There is no pending action.")
+        message_id = email_provider.send_email(draft_id)
 
-        email = pending_action.data.get("email")
-
-        if email is None:
-            raise ValueError("There is no pending email draft.")
-
-        if email.draft_id != draft_id:
-            raise ValueError(
-                "The draft id does not match the pending email."
-            )
-
-        result = email_provider.send_email(draft_id)
-
-        return Command(
-            update={
-                "pending_action": None,
-                "requires_confirmation":False,
-                "messages": [
-                    ToolMessage(
-                        content=str({
-                            "success": True,
-                            "result": result,
-                        }),
-                        tool_call_id=runtime.tool_call_id,
-                    )
-                ]
-            }
+        return SendEmailToolOutput(
+            success=True,
+            message_id=message_id,
         )
 
     return [
         search_emails,
-        get_email,
+        get_email_message,
         create_draft,
         update_draft,
         send_email,

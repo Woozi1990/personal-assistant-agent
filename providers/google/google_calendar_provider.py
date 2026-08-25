@@ -1,4 +1,3 @@
-import asyncio
 from datetime import datetime
 import threading
 
@@ -19,7 +18,7 @@ class GoogleCalendarProvider(CalendarProvider):
 
         self.calendar_client = build("calendar", "v3", credentials=credentials)
 
-    async def create_event(
+    def create_event(
             self,
             title: str,
             start_time: datetime,
@@ -46,12 +45,10 @@ class GoogleCalendarProvider(CalendarProvider):
                 for email in attendees
             ]
         with self._lock:
-            google_event = await asyncio.to_thread(
-                lambda: self.calendar_client.events().insert(
-                    calendarId="primary",
-                    body=event_body
-                ).execute()
-            )
+            google_event = self.calendar_client.events().insert(
+                calendarId="primary",
+                body=event_body
+            ).execute()
 
         return CalendarEvent(
             id=google_event["id"],
@@ -63,7 +60,7 @@ class GoogleCalendarProvider(CalendarProvider):
             status=google_event["status"]
         )
 
-    async def list_events(self, start_time: datetime, end_time: datetime, query: str | None = None) -> list[
+    def list_events(self, start_time: datetime, end_time: datetime, query: str | None = None) -> list[
         CalendarEvent]:
         request_params = {
             "calendarId": "primary",
@@ -77,9 +74,8 @@ class GoogleCalendarProvider(CalendarProvider):
             request_params["q"] = query
 
         with self._lock:
-            result = await asyncio.to_thread(
-                lambda: self.calendar_client.events().list(**request_params).execute()
-            )
+            result = self.calendar_client.events().list(**request_params).execute()
+
         calendar_events = []
 
         for google_event in result.get("items", []):
@@ -110,7 +106,7 @@ class GoogleCalendarProvider(CalendarProvider):
             )
         return calendar_events
 
-    async def update_event(self, event: CalendarEvent) -> CalendarEvent:
+    def update_event(self, event: CalendarEvent) -> CalendarEvent:
         event_body = {
             "summary": event.title,
             "location": event.location,
@@ -132,13 +128,11 @@ class GoogleCalendarProvider(CalendarProvider):
         event_id = event.id
 
         with self._lock:
-            google_event = await asyncio.to_thread(
-                lambda: self.calendar_client.events().patch(
-                    calendarId="primary",
-                    eventId=event_id,
-                    body=event_body
-                ).execute()
-            )
+            google_event = self.calendar_client.events().patch(
+                calendarId="primary",
+                eventId=event_id,
+                body=event_body
+            ).execute()
 
         attendees = [
             attendee["email"]
@@ -162,17 +156,16 @@ class GoogleCalendarProvider(CalendarProvider):
             status=google_event["status"]
         )
 
-    async def delete_event(self, event_id: str) -> None:
+    def delete_event(self, event_id: str) -> None:
         print(f"Deleting event: {event_id}")
         with self._lock:
-            await asyncio.to_thread(
-                lambda: self.calendar_client.events().delete(
-                    calendarId="primary",
-                    eventId=event_id
-                ).execute()
-            )
+            self.calendar_client.events().delete(
+                calendarId="primary",
+                eventId=event_id
+            ).execute()
+
         print(f"Deleted event: {event_id}")
 
-    async def check_availability(self, start_time: datetime, end_time: datetime) -> bool:
-        events = await self.list_events(start_time, end_time, query=None)
+    def check_availability(self, start_time: datetime, end_time: datetime) -> bool:
+        events = self.list_events(start_time, end_time, query=None)
         return len(events) == 0

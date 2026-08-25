@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from models.email import Email
+
 
 class SearchEmailsToolInput(BaseModel):
     query: str = Field(
@@ -37,6 +39,13 @@ class CreateDraftToolInput(BaseModel):
 
 
 class UpdateDraftToolInput(BaseModel):
+    draft_id: str = Field(
+        description=(
+            "The Gmail draft ID of the draft to update. "
+            "Use only a draft ID returned by an existing tool result. "
+            "Do not invent or guess this value."
+        )
+    )
     recipients: list[str] | None = Field(
         default=None,
         description=(
@@ -67,3 +76,28 @@ class SendEmailToolInput(BaseModel):
             "Do not use a message ID and do not invent this value."
         )
     )
+
+
+class CreateDraftToolOutput(BaseModel):
+    success: bool = Field(description="Whether the email draft created completed successfully.")
+    draft: Email = Field(description="The email draft created.")
+
+
+class UpdateDraftToolOutput(BaseModel):
+    success: bool = Field(description="Whether the email draft updated completed successfully.")
+    draft: Email = Field(description="The email draft updated.")
+
+
+class SearchEmailsToolOutput(BaseModel):
+    success: bool = Field(description="Whether the email search completed successfully.")
+    emails: list[Email] = Field(description="List of email matching the search query.")
+
+
+class GetEmailToolOutput(BaseModel):
+    success: bool = Field(description="Whether the email get completed successfully.")
+    email: Email = Field(description="The email matching search ID.")
+
+
+class SendEmailToolOutput(BaseModel):
+    success: bool = Field(description="Whether the email send completed successfully.")
+    message_id: str = Field(description="The Gmail message ID of the sent email.")
