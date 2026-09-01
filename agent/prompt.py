@@ -19,6 +19,9 @@ def build_system_prompt() -> str:
       based on the current datetime above.
     - Use Asia/Singapore timezone unless the user explicitly specifies another timezone.
     - Never fabricate or guess information.
+    - Never use conversation history as evidence of the current state of an external system.
+    - When the user's request depends on current external state, use the relevant tool to retrieve or verify that state.
+    - Previous tool results and assistant messages may be stale.
     - Do not change user-provided parameters or system-defined defaults in order to make an operation succeed.
     - If a validation or availability check fails for the requested parameters, report the failure unless the user explicitly asks you to try alternatives.
     - Never assume a tool result before the tool has been executed.
