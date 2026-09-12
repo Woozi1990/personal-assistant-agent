@@ -6,19 +6,12 @@ from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
-from pydantic import BaseModel
 
 from agent.build_tools import build_tools
-from agent.middleware.tool_logging import tool_logging
+from agent.middleware.tool_logging import ToolCallingMiddleware
 from agent.prompt import dynamic_system_prompt
 
 from config import AZURE_OPENAI_API_KEY, AZURE_OPENAI_MODEL, AZURE_OPENAI_BASE_URL
-
-
-class AgentResult(BaseModel):
-    status: Literal["completed", "interrupted"]
-    message: str | None = None
-    interrupt: object | None = None
 
 
 class Agent:
@@ -37,24 +30,24 @@ class Agent:
             tools=self._tools,
             middleware=[
                 dynamic_system_prompt,
-                tool_logging,
+                ToolCallingMiddleware(),
                 HumanInTheLoopMiddleware(
                     interrupt_on={
-                        "create_event": True,
                         "delete_event": True,
                         "delete_contact": True,
+                        "send_email": True,
                     }
                 )
             ],
             checkpointer=self._checkpointer,
         )
 
-    def invoke(
+    async def invoke(
             self,
             user_input: str,
             thread_id: str = "default"
     ):
-        result = self._agent.invoke(
+        result = await self._agent.ainvoke(
             {
                 "messages":
                     [
@@ -81,7 +74,7 @@ class Agent:
             "message": final_message.content
         }
 
-    def resume(
+    async def resume(
             self,
             decision: str,
             message: str | None = None,
@@ -115,7 +108,7 @@ class Agent:
         else:
             raise ValueError(f"Unsupported decision: {decision}")
 
-        result = self._agent.invoke(
+        result = await self._agent.ainvoke(
             Command(resume=resume_data),
             config={
                 "configurable": {

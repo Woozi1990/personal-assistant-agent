@@ -114,8 +114,10 @@ class CheckAvailabilityToolInput(BaseModel):
 
 class CreateEventToolOutput(BaseModel):
     success: bool = Field(description="Whether the calendar event create completed successfully.")
-    event: CalendarEvent = Field(
+    event: CalendarEvent | None = Field(
+        default=None,
         description="The newly created event, including its generated event ID and saved event information.")
+    error: str | None = None
 
 
 class ListEventsToolOutput(BaseModel):
@@ -125,13 +127,17 @@ class ListEventsToolOutput(BaseModel):
 
 class UpdateEventToolOutput(BaseModel):
     success: bool = Field(description="Whether the calendar event update completed successfully.")
-    event: CalendarEvent = Field(description="The updated event, including its event ID and current event information.")
+    event: CalendarEvent | None = Field(
+        default=None,
+        description="The updated event, including its event ID and current event information.")
+    error: str | None = None
 
 
 class DeleteEventToolOutput(BaseModel):
     success: bool = Field(description="Whether the calendar event delete completed successfully.")
     event_id: str = Field(description="Unique ID of the existing calendar event to delete.")
 
+
 class CheckAvailabilityToolOutput(BaseModel):
-    success:bool = Field(description="Whether the calendar event check completed successfully.")
+    success: bool = Field(description="Whether the calendar event check completed successfully.")
     is_available: bool = Field(description="Whether it is available in the period of time.")

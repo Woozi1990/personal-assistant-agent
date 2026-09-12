@@ -1,10 +1,10 @@
-import traceback
+import asyncio
 
 from agent.agent import Agent
 from agent.confirmation import Confirmation
 
 
-def main():
+async def main():
     agent = Agent()
     confirmation = Confirmation()
 
@@ -18,7 +18,7 @@ def main():
         if user_input in {"exit", "quit"}:
             break
 
-        response = agent.invoke(user_input)
+        response = await agent.invoke(user_input)
         if response["status"] == "interrupted":
             interrupt = response["interrupts"][0]
             request = interrupt.value["action_requests"][0]
@@ -28,25 +28,25 @@ def main():
             print(f"Tool: {request['name']}")
             print(f"Arguments: {request['args']}")
 
-            user_response = input("确认执行？(y/n): ").strip()
-            decision = confirmation.invoke(user_response).decision
+            user_response = input("请确认或取消该操作: ").strip()
+            decision = (await confirmation.invoke(user_response)).decision
             print(f"Decision: {decision}")
 
             if decision == "approve":
-                response = agent.resume("approve")
+                response =await agent.resume("approve")
             elif decision == "reject":
-                response = agent.resume("reject")
+                response = await agent.resume("reject")
             else:
-                agent.resume(
+                await agent.resume(
                     decision="respond",
                     message="The user did not answer the pending confirmation. "
                             "The current input is a separate request. "
                             "Do not execute or treat the pending action as rejected."
                 )
-                response = agent.invoke(user_response)
+                response =await agent.invoke(user_response)
 
         print(f"Assistant: {response['message']}")
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())

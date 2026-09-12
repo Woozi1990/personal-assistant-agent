@@ -6,3 +6,5 @@ python-dotenv~=1.2.2
 google-api-python-client~=2.198.0
 protobuf~=7.35.1
 google-auth-oauthlib~=1.4.0
+msal
+mcp

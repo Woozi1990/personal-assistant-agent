@@ -1,5 +1,5 @@
+import asyncio
 from datetime import datetime
-import threading
 
 from googleapiclient.discovery import build
 
@@ -11,14 +11,14 @@ from providers.interfaces.calendar_provider import CalendarProvider
 class GoogleCalendarProvider(CalendarProvider):
     def __init__(self, auth_service: GoogleAuthService):
 
-        self._lock = threading.Lock()
+        self._lock = asyncio.Lock()
         self.auth_service = auth_service
 
         credentials = self.auth_service.get_credentials()
 
         self.calendar_client = build("calendar", "v3", credentials=credentials)
 
-    def create_event(
+    async def create_event(
             self,
             title: str,
             start_time: datetime,
@@ -44,11 +44,11 @@ class GoogleCalendarProvider(CalendarProvider):
                 {"email": email}
                 for email in attendees
             ]
-        with self._lock:
-            google_event = self.calendar_client.events().insert(
+        async with self._lock:
+            google_event = await asyncio.to_thread(lambda: self.calendar_client.events().insert(
                 calendarId="primary",
                 body=event_body
-            ).execute()
+            ).execute())
 
         return CalendarEvent(
             id=google_event["id"],
@@ -60,7 +60,7 @@ class GoogleCalendarProvider(CalendarProvider):
             status=google_event["status"]
         )
 
-    def list_events(self, start_time: datetime, end_time: datetime, query: str | None = None) -> list[
+    async def list_events(self, start_time: datetime, end_time: datetime, query: str | None = None) -> list[
         CalendarEvent]:
         request_params = {
             "calendarId": "primary",
@@ -73,8 +73,8 @@ class GoogleCalendarProvider(CalendarProvider):
         if query:
             request_params["q"] = query
 
-        with self._lock:
-            result = self.calendar_client.events().list(**request_params).execute()
+        async with self._lock:
+            result = await asyncio.to_thread(lambda: self.calendar_client.events().list(**request_params).execute())
 
         calendar_events = []
 
@@ -106,7 +106,7 @@ class GoogleCalendarProvider(CalendarProvider):
             )
         return calendar_events
 
-    def update_event(self, event: CalendarEvent) -> CalendarEvent:
+    async def update_event(self, event: CalendarEvent) -> CalendarEvent:
         event_body = {
             "summary": event.title,
             "location": event.location,
@@ -127,12 +127,12 @@ class GoogleCalendarProvider(CalendarProvider):
 
         event_id = event.id
 
-        with self._lock:
-            google_event = self.calendar_client.events().patch(
+        async with self._lock:
+            google_event = await asyncio.to_thread(lambda: self.calendar_client.events().patch(
                 calendarId="primary",
                 eventId=event_id,
                 body=event_body
-            ).execute()
+            ).execute())
 
         attendees = [
             attendee["email"]
@@ -156,16 +156,18 @@ class GoogleCalendarProvider(CalendarProvider):
             status=google_event["status"]
         )
 
-    def delete_event(self, event_id: str) -> None:
+    async def delete_event(self, event_id: str) -> None:
         print(f"Deleting event: {event_id}")
-        with self._lock:
-            self.calendar_client.events().delete(
+        async with self._lock:
+            await asyncio.to_thread(lambda: self.calendar_client.events().delete(
                 calendarId="primary",
                 eventId=event_id
-            ).execute()
+            ).execute())
 
         print(f"Deleted event: {event_id}")
 
-    def check_availability(self, start_time: datetime, end_time: datetime) -> bool:
-        events = self.list_events(start_time, end_time, query=None)
+    async def check_availability(self, start_time: datetime, end_time: datetime, exclude_event_id:str|None = None) -> bool:
+        events = await self.list_events(start_time, end_time, query=None)
+        if exclude_event_id is not None:
+            events = [event for event in events if event.id != exclude_event_id]
         return len(events) == 0

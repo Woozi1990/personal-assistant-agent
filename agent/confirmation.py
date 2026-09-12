@@ -20,7 +20,7 @@ class Confirmation:
             temperature=0.0,
         ).with_structured_output(ConfirmationDecision)
 
-    def invoke(self, user_input: str) -> ConfirmationDecision:
+    async def invoke(self, user_input: str) -> ConfirmationDecision:
         prompt = """
         Determine whether the user's response approves or rejects a pending action.
         
@@ -31,7 +31,7 @@ class Confirmation:
         question, making another request, or requesting changes.
         """
 
-        return self._llm.invoke([
+        return await self._llm.ainvoke([
             SystemMessage(content=prompt),
             HumanMessage(content=user_input)
         ])

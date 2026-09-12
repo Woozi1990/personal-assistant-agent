@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 
 from googleapiclient.discovery import build
@@ -10,6 +11,7 @@ from providers.interfaces.contact_provider import ContactProvider
 class GoogleContactProvider(ContactProvider):
     def __init__(self, auth_service: GoogleAuthService):
         self.auth_service = auth_service
+        self._lock = asyncio.Lock()
 
         credentials = self.auth_service.get_credentials()
 
@@ -19,7 +21,7 @@ class GoogleContactProvider(ContactProvider):
             credentials=credentials,
         )
 
-    def create_contact(
+    async def create_contact(
             self,
             given_name: str | None = None,
             family_name: str | None = None,
@@ -45,20 +47,25 @@ class GoogleContactProvider(ContactProvider):
                 for phone_number in phone_numbers
             ]
 
-        result = self.people_client.people().createContact(body=person).execute()
+        async with self._lock:
+            result = await asyncio.to_thread(
+                lambda: self.people_client.people()
+                .createContact(body=person)
+                .execute()
+            )
 
         return self._parse_contact(result)
 
-    def update_contact(self, contact: Contact):
-        person = (
-            self.people_client
-            .people()
-            .get(
-                resourceName=contact.id,
-                personFields="names,emailAddresses,phoneNumbers"
+    async def update_contact(self, contact: Contact) -> Contact:
+        async with self._lock:
+            person = await asyncio.to_thread(
+                lambda: self.people_client
+                .people()
+                .get(
+                    resourceName=contact.id,
+                    personFields="names,emailAddresses,phoneNumbers"
+                ).execute()
             )
-            .execute()
-        )
 
         update_fields = []
 
@@ -93,36 +100,45 @@ class GoogleContactProvider(ContactProvider):
             ]
             update_fields.append("phoneNumbers")
 
-        result = (
-            self.people_client
-            .people()
-            .updateContact(
-                resourceName=contact.id,
-                updatePersonFields=",".join(update_fields),
-                body=person,
-            ).execute()
-        )
+        async with self._lock:
+            result = await asyncio.to_thread(
+                lambda: self.people_client
+                .people()
+                .updateContact(
+                    resourceName=contact.id,
+                    updatePersonFields=",".join(update_fields),
+                    body=person,
+                ).execute()
+            )
 
         return self._parse_contact(result)
 
-    def search_contact(
+    async def search_contact(
             self,
             query: str,
     ) -> list[Contact]:
 
         # Before searching, clients should send a warmup request
         # with an empty query to update the cache
-        self.people_client.people().searchContacts(
-            query="",
-            readMask="names,emailAddresses,phoneNumbers",
-            pageSize=1,
-        ).execute()
+        async with self._lock:
+            await asyncio.to_thread(
+                lambda: self.people_client.people()
+                .searchContacts(
+                    query="",
+                    readMask="names,emailAddresses,phoneNumbers",
+                    pageSize=1,
+                ).execute()
+            )
 
-        result = self.people_client.people().searchContacts(
-            query=query,
-            readMask="names,emailAddresses,phoneNumbers",
-            pageSize=10,
-        ).execute()
+        async with self._lock:
+            result = await asyncio.to_thread(
+                lambda: self.people_client.people()
+                .searchContacts(
+                    query=query,
+                    readMask="names,emailAddresses,phoneNumbers",
+                    pageSize=10,
+                ).execute()
+            )
 
         contacts = []
 
@@ -132,8 +148,13 @@ class GoogleContactProvider(ContactProvider):
             contacts.append(self._parse_contact(person))
         return contacts
 
-    def delete_contact(self, contact_id: str) -> None:
-        self.people_client.people().deleteContact(resourceName=contact_id).execute()
+    async def delete_contact(self, contact_id: str) -> None:
+        async with self._lock:
+            await asyncio.to_thread(
+                lambda: self.people_client.people()
+                .deleteContact(resourceName=contact_id)
+                .execute()
+            )
 
     @staticmethod
     def _parse_contact(person: dict[str, Any]) -> Contact:

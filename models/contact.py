@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 
 class Contact(BaseModel):
     id: str = Field(
-        description="Unique Google contact ID."
+        description="Unique contact ID."
     )
 
     given_name: str | None = Field(

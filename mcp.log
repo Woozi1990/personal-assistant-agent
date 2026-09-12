@@ -1,0 +1,1 @@
+2026-09-11 15:37:02,272 - httpx2 - INFO - HTTP Request: GET https://pypi.org/pypi/fastmcp/json "HTTP/1.1 200 OK"

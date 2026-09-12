@@ -1,5 +1,5 @@
+import asyncio
 import base64
-import threading
 from email.message import EmailMessage
 from email.utils import getaddresses, parsedate_to_datetime, parseaddr
 
@@ -12,49 +12,50 @@ from providers.interfaces.email_provider import EmailProvider
 
 class GmailProvider(EmailProvider):
     def __init__(self, auth_service: GoogleAuthService):
-        self._lock = threading.Lock()
+        self._lock = asyncio.Lock()
         self.auth_service = auth_service
 
         credentials = self.auth_service.get_credentials()
 
         self.email_client = build("gmail", "v1", credentials=credentials)
 
-    def search_emails(self, query: str) -> list[Email]:
-        with self._lock:
-            result = self.email_client.users().messages().list(
+    async def search_emails(self, query: str) -> list[Email]:
+        async with self._lock:
+            result = await asyncio.to_thread(lambda: self.email_client.users().messages().list(
                 userId="me",
                 q=query,
                 maxResults=100,
-            ).execute()
+            ).execute())
 
         messages = result.get("messages", [])
         emails = []
 
         for item in messages:
-            message = self.email_client.users().messages().get(
-                userId="me",
-                id=item["id"],
-            ).execute()
+            async with self._lock:
+                message = await asyncio.to_thread(lambda: self.email_client.users().messages().get(
+                    userId="me",
+                    id=item["id"],
+                ).execute())
 
             email = self._parse_email(message)
             emails.append(email)
 
         return emails
 
-    def get_email(self, message_id: str) -> Email:
-        with self._lock:
-            message = self.email_client.users().messages().get(
+    async def get_email(self, message_id: str) -> Email:
+        async with self._lock:
+            message = await asyncio.to_thread(lambda: self.email_client.users().messages().get(
                 userId="me",
                 id=message_id,
                 format="full",
-            ).execute()
+            ).execute())
 
         email = self._parse_email(message)
         email.body = self._parse_email_body(message["payload"])
 
         return email
 
-    def create_draft(self, recipients: list[str], subject: str, body: str) -> Email:
+    async def create_draft(self, recipients: list[str], subject: str, body: str) -> Email:
         invalid_recipients = [
             recipient
             for recipient in recipients
@@ -75,11 +76,11 @@ class GmailProvider(EmailProvider):
 
         raw = self._build_raw_message(email)
 
-        with self._lock:
-            result = self.email_client.users().drafts().create(
+        async with self._lock:
+            result = await asyncio.to_thread(lambda: self.email_client.users().drafts().create(
                 userId="me",
                 body={"message": {"raw": raw}},
-            ).execute()
+            ).execute())
 
         return Email(
             id=result["message"]["id"],
@@ -90,47 +91,47 @@ class GmailProvider(EmailProvider):
             body=body,
         )
 
-    def get_draft(self, draft_id: str) -> Email:
-        with self._lock:
-            draft = self.email_client.users().drafts().get(
+    async def get_draft(self, draft_id: str) -> Email:
+        async with self._lock:
+            draft = await asyncio.to_thread(lambda: self.email_client.users().drafts().get(
                 userId="me",
                 id=draft_id,
                 format="full",
-            ).execute()
+            ).execute())
 
         message = draft["message"]
         email = self._parse_email(message)
-        email.draft_id=draft["id"]
+        email.draft_id = draft["id"]
         email.body = self._parse_email_body(message["payload"])
 
         return email
 
-    def update_draft(self, email: Email) -> Email:
+    async def update_draft(self, email: Email) -> Email:
         if not email.draft_id:
             raise ValueError("Draft id is required")
 
         raw = self._build_raw_message(email)
 
-        with self._lock:
-            result = self.email_client.users().drafts().update(
+        async with self._lock:
+            result = await asyncio.to_thread(lambda: self.email_client.users().drafts().update(
                 userId="me",
                 id=email.draft_id,
                 body={"message": {"raw": raw}},
-            ).execute()
+            ).execute())
 
         email.id = result["message"]["id"]
         email.thread_id = result["message"].get("threadId")
 
         return email
 
-    def send_email(self, draft_id: str) -> str:
-        with self._lock:
-            result = self.email_client.users().drafts().send(
+    async def send_email(self, draft_id: str) -> str:
+        async with self._lock:
+            result = await asyncio.to_thread(lambda: self.email_client.users().drafts().send(
                 userId="me",
                 body={
                     "id": draft_id,
                 }
-            ).execute()
+            ).execute())
 
         return result["id"]
 

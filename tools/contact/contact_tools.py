@@ -18,7 +18,7 @@ def build_contact_tools(
         contact_provider: ContactProvider,
 ) -> list[BaseTool]:
     @tool(args_schema=CreateContactToolInput)
-    def create_contact(
+    async def create_contact(
             given_name: str | None = None,
             family_name: str | None = None,
             emails: list[str] | None = None,
@@ -43,7 +43,7 @@ def build_contact_tools(
             - phone_numbers
         """
 
-        contact = contact_provider.create_contact(given_name, family_name, emails, phone_numbers)
+        contact = await contact_provider.create_contact(given_name, family_name, emails, phone_numbers)
 
         return CreateContactToolOutput(
             success=True,
@@ -51,7 +51,7 @@ def build_contact_tools(
         )
 
     @tool(args_schema=UpdateContactToolInput)
-    def update_contact(
+    async def update_contact(
             contact_id: str,
             given_name: str | None = None,
             family_name: str | None = None,
@@ -85,7 +85,7 @@ def build_contact_tools(
             phone_numbers=phone_numbers
         )
 
-        updated_contact = contact_provider.update_contact(contact)
+        updated_contact = await contact_provider.update_contact(contact)
 
         return UpdateContactToolOutput(
             success=True,
@@ -93,7 +93,7 @@ def build_contact_tools(
         )
 
     @tool(args_schema=SearchContactToolInput)
-    def search_contact(query: str) -> SearchContactToolOutput:
+    async def search_contact(query: str) -> SearchContactToolOutput:
         """
         Search the user's saved contacts.
 
@@ -110,7 +110,7 @@ def build_contact_tools(
           - phone_numbers: saved phone numbers
         """
 
-        contacts = contact_provider.search_contact(query)
+        contacts = await contact_provider.search_contact(query)
 
         return SearchContactToolOutput(
             success=True,
@@ -118,7 +118,7 @@ def build_contact_tools(
         )
 
     @tool(args_schema=DeleteContactToolInput)
-    def delete_contact(contact_id: str) -> DeleteContactToolOutput:
+    async def delete_contact(contact_id: str) -> DeleteContactToolOutput:
         """
         Delete an existing saved contact.
 
@@ -132,7 +132,7 @@ def build_contact_tools(
         - id: contact ID of the deleted contact
 
         """
-        contact_provider.delete_contact(contact_id)
+        await contact_provider.delete_contact(contact_id)
 
         return DeleteContactToolOutput(
             success=True,

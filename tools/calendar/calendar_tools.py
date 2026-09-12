@@ -19,7 +19,7 @@ def build_calendar_tools(
         calendar_provider: CalendarProvider,
 ) -> list[BaseTool]:
     @tool(args_schema=CreateEventToolInput)
-    def create_event(
+    async def create_event(
             title: str,
             start_time: str,
             end_time: str | None = None,
@@ -28,9 +28,6 @@ def build_calendar_tools(
     ) -> CreateEventToolOutput:
         """
         Create a calendar event.
-
-        Before creating an event, use check_availability to check the
-        requested time range. Only create the event if is_available=True.
 
         If the user does not specify an end time, use a default duration
         of one hour.
@@ -66,7 +63,16 @@ def build_calendar_tools(
         else:
             parsed_end_time = parsed_start_time + timedelta(hours=1)
 
-        event = calendar_provider.create_event(
+        is_available = await calendar_provider.check_availability(parsed_start_time, parsed_end_time)
+
+        if not is_available:
+            return CreateEventToolOutput(
+                success=False,
+                event=None,
+                error="The requested time slot is unavailable."
+            )
+
+        event = await calendar_provider.create_event(
             title=title,
             start_time=parsed_start_time,
             end_time=parsed_end_time,
@@ -79,7 +85,7 @@ def build_calendar_tools(
         )
 
     @tool(args_schema=ListEventsToolInput)
-    def list_events(
+    async def list_events(
             start_time: str,
             end_time: str,
             query: str | None = None
@@ -111,7 +117,7 @@ def build_calendar_tools(
         parsed_start_time = _parse_datetime(start_time)
         parsed_end_time = _parse_datetime(end_time)
 
-        events = calendar_provider.list_events(
+        events = await calendar_provider.list_events(
             start_time=parsed_start_time,
             end_time=parsed_end_time,
             query=query,
@@ -122,7 +128,7 @@ def build_calendar_tools(
         )
 
     @tool(args_schema=UpdateEventToolInput)
-    def update_event(
+    async def update_event(
             event_id: str,
             title: str,
             start_time: str,
@@ -156,6 +162,14 @@ def build_calendar_tools(
         parsed_start_time = _parse_datetime(start_time)
         parsed_end_time = _parse_datetime(end_time)
 
+        is_available = await calendar_provider.check_availability(parsed_start_time, parsed_end_time, event_id)
+
+        if not is_available:
+            return UpdateEventToolOutput(
+                success=False,
+                event=None,
+                error="The requested time slot is unavailable."
+            )
         event = CalendarEvent(
             id=event_id,
             title=title,
@@ -165,14 +179,14 @@ def build_calendar_tools(
             attendees=attendees,
             status=event_status
         )
-        updated_event = calendar_provider.update_event(event)
+        updated_event = await calendar_provider.update_event(event)
         return UpdateEventToolOutput(
             success=True,
             event=updated_event,
         )
 
     @tool(args_schema=DeleteEventToolInput)
-    def delete_event(event_id: str, ) -> DeleteEventToolOutput:
+    async def delete_event(event_id: str, ) -> DeleteEventToolOutput:
         """
         Delete a calendar event for the user.
         Use this tool when the user asks to delete a meeting,
@@ -185,7 +199,7 @@ def build_calendar_tools(
         - event_id: deleted event ID
         """
 
-        calendar_provider.delete_event(event_id)
+        await calendar_provider.delete_event(event_id)
 
         return DeleteEventToolOutput(
             success=True,
@@ -193,7 +207,7 @@ def build_calendar_tools(
         )
 
     @tool(args_schema=CheckAvailabilityToolInput)
-    def check_availability(
+    async def check_availability(
             start_time: str,
             end_time: str,
     ) -> CheckAvailabilityToolOutput:
@@ -210,7 +224,7 @@ def build_calendar_tools(
         parsed_start_time = _parse_datetime(start_time)
         parsed_end_time = _parse_datetime(end_time)
 
-        is_available = calendar_provider.check_availability(
+        is_available = await calendar_provider.check_availability(
             start_time=parsed_start_time,
             end_time=parsed_end_time,
         )

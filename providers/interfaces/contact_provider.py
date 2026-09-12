@@ -4,7 +4,7 @@ from models.contact import Contact
 
 
 class ContactProvider(Protocol):
-    def create_contact(
+    async def create_contact(
             self,
             given_name: str | None = None,
             family_name: str | None = None,
@@ -13,11 +13,11 @@ class ContactProvider(Protocol):
     ) -> Contact:
         ...
 
-    def update_contact(self, contact: Contact) -> Contact:
+    async def update_contact(self, contact: Contact) -> Contact:
         ...
 
-    def search_contact(self, query: str) -> list[Contact]:
+    async def search_contact(self, query: str) -> list[Contact]:
         ...
 
-    def delete_contact(self, contact_id: str) -> None:
+    async def delete_contact(self, contact_id: str) -> None:
         ...

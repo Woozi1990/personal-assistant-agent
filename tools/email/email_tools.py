@@ -11,7 +11,7 @@ def build_email_tools(
         email_provider: EmailProvider,
 ) -> list[BaseTool]:
     @tool(args_schema=SearchEmailsToolInput)
-    def search_emails(query: str) -> SearchEmailsToolOutput:
+    async def search_emails(query: str) -> SearchEmailsToolOutput:
         """
         Search the user's mailbox for matching emails.
 
@@ -34,7 +34,7 @@ def build_email_tools(
             - received_at
             - snippet
         """
-        emails = email_provider.search_emails(query)
+        emails = await email_provider.search_emails(query)
 
         return SearchEmailsToolOutput(
             success=True,
@@ -42,7 +42,7 @@ def build_email_tools(
         )
 
     @tool(args_schema=GetEmailToolInput)
-    def get_email_message(message_id: str) -> GetEmailToolOutput:
+    async def get_email_message(message_id: str) -> GetEmailToolOutput:
         """
         Retrieve the full content of a specific mailbox email message by message ID.
 
@@ -62,14 +62,14 @@ def build_email_tools(
             - received_at
             - snippet
         """
-        email = email_provider.get_email(message_id)
+        email = await email_provider.get_email(message_id)
         return GetEmailToolOutput(
             success=True,
             email=email,
         )
 
     @tool(args_schema=CreateDraftToolInput)
-    def create_draft(
+    async def create_draft(
             recipients: list[str],
             subject: str,
             body: str,
@@ -99,7 +99,7 @@ def build_email_tools(
             - snippet
         """
 
-        draft = email_provider.create_draft(recipients, subject, body)
+        draft = await email_provider.create_draft(recipients, subject, body)
 
         return CreateDraftToolOutput(
             success=True,
@@ -107,7 +107,7 @@ def build_email_tools(
         )
 
     @tool(args_schema=UpdateDraftToolInput)
-    def update_draft(
+    async def update_draft(
             draft_id: str,
             recipients: list[str] | None = None,
             subject: str | None = None,
@@ -130,7 +130,7 @@ def build_email_tools(
         - result: the complete updated Email draft
         """
 
-        email = email_provider.get_draft(draft_id)
+        email = await email_provider.get_draft(draft_id)
 
         if recipients is not None:
             email.recipients = recipients
@@ -139,16 +139,14 @@ def build_email_tools(
         if body is not None:
             email.body = body
 
-        updated_draft = email_provider.update_draft(email)
+        updated_draft = await email_provider.update_draft(email)
         return UpdateDraftToolOutput(
             success=True,
             draft=updated_draft,
         )
 
-
-
     @tool(args_schema=SendEmailToolInput)
-    def send_email(
+    async def send_email(
             draft_id: str,
     ) -> SendEmailToolOutput:
         """
@@ -165,7 +163,7 @@ def build_email_tools(
 
         """
 
-        message_id = email_provider.send_email(draft_id)
+        message_id = await email_provider.send_email(draft_id)
 
         return SendEmailToolOutput(
             success=True,
