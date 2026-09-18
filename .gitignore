@@ -15,7 +15,8 @@ venv/
 .vscode/
 .idea/
 
-# Google Auth
+# Google/Microsoft Auth
 credentials/
 
 test.py
+ms-365-mcp-server/

@@ -33,7 +33,7 @@ async def main():
             print(f"Decision: {decision}")
 
             if decision == "approve":
-                response =await agent.resume("approve")
+                response = await agent.resume("approve")
             elif decision == "reject":
                 response = await agent.resume("reject")
             else:
@@ -43,7 +43,7 @@ async def main():
                             "The current input is a separate request. "
                             "Do not execute or treat the pending action as rejected."
                 )
-                response =await agent.invoke(user_response)
+                response = await agent.invoke(user_response)
 
         print(f"Assistant: {response['message']}")
 

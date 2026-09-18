@@ -60,8 +60,12 @@ class GoogleCalendarProvider(CalendarProvider):
             status=google_event["status"]
         )
 
-    async def list_events(self, start_time: datetime, end_time: datetime, query: str | None = None) -> list[
-        CalendarEvent]:
+    async def list_events(
+            self,
+            start_time: datetime,
+            end_time: datetime,
+            query: str | None = None
+    ) -> list[CalendarEvent]:
         request_params = {
             "calendarId": "primary",
             "timeMin": start_time.isoformat(),
@@ -166,7 +170,8 @@ class GoogleCalendarProvider(CalendarProvider):
 
         print(f"Deleted event: {event_id}")
 
-    async def check_availability(self, start_time: datetime, end_time: datetime, exclude_event_id:str|None = None) -> bool:
+    async def check_availability(self, start_time: datetime, end_time: datetime,
+                                 exclude_event_id: str | None = None) -> bool:
         events = await self.list_events(start_time, end_time, query=None)
         if exclude_event_id is not None:
             events = [event for event in events if event.id != exclude_event_id]

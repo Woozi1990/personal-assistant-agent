@@ -1,0 +1,18 @@
+services:
+  ms365-mcp:
+    image: ms365-mcp:v1.0
+    container_name: ms365-mcp
+
+    ports:
+      - "3000:3000"
+
+    environment:
+      MS365_MCP_CLIENT_ID: "${MICROSOFT_CLIENT_ID}"
+      MS365_MCP_CLIENT_SECRET: "${MS365_MCP_CLIENT_SECRET}"
+      MS365_MCP_TENANT_ID: "consumers"
+
+    command:
+      - "--http"
+      - "3000"
+      - "--public-url"
+      - "http://localhost:3000"

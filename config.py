@@ -19,3 +19,14 @@ if not AZURE_OPENAI_MODEL:
     raise RuntimeError(
         "AZURE_OPENAI_MODEL is not configured."
     )
+
+MS365_MCP_URL = os.getenv("MS365_MCP_URL")
+if not MS365_MCP_URL:
+    raise RuntimeError(
+        "MS365_MCP_URL is not configured."
+    )
+MS365_CALLBACK_URL = os.getenv("MS365_CALLBACK_URL", "http://localhost:8080/callback")
+if not MS365_CALLBACK_URL:
+    raise RuntimeError(
+        "MS365_CALLBACK_URL is not configured."
+    )

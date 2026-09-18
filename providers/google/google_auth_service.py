@@ -8,8 +8,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 
 class GoogleAuthService:
     def __init__(self, scopes: list[str]):
-        self.credentials_path = "credentials/credentials.json"
-        self.token_path = "credentials/token.json"
+        self.credentials_path = "credentials/google_credentials.json"
+        self.token_path = "credentials/google_auth_token.json"
         self.scopes = scopes
 
     def get_credentials(self):
