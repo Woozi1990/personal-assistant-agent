@@ -1,6 +1,7 @@
 import asyncio
 import json
 import webbrowser
+import time
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
@@ -25,18 +26,26 @@ class FileTokenStorage(TokenStorage):
         self.token_path = token_path
         self.client_path = client_path
 
-
     async def get_tokens(self) -> OAuthToken:
         if not self.token_path.exists():
             return None
 
         data = json.loads(self.token_path.read_text(encoding="utf-8"))
 
+        expired_at = data.pop("expires_at", None)
+        if expired_at is not None:
+            data["expires_in"] = max(0, int(expired_at - time.time()))
+
         return OAuthToken.model_validate(data)
 
     async def set_tokens(self, tokens: OAuthToken) -> None:
+        data = tokens.model_dump()
+
+        if tokens.expires_in is not None:
+            data["expires_at"] = time.time() + tokens.expires_in
+
         self.token_path.write_text(
-            tokens.model_dump_json(indent=2),
+            json.dumps(data, indent=2),
             encoding="utf-8",
         )
 
@@ -108,13 +117,24 @@ async def callback_handler() -> tuple[str, str | None]:
         await server.wait_closed()
 
 
+class PersistentOAuthClientProvider(OAuthClientProvider):
+
+    async def _initialize(self) -> None:
+        await super()._initialize()
+
+        if self.context.current_tokens is not None:
+            self.context.update_token_expiry(
+                self.context.current_tokens
+            )
+
+
 class MicrosoftMCPClient:
     def __init__(self, url: str = MS365_MCP_URL):
         self._url = url
         self.storage = FileTokenStorage()
 
     def _create_oauth_provider(self) -> OAuthClientProvider:
-        return OAuthClientProvider(
+        return PersistentOAuthClientProvider(
             server_url=self._url,
             client_metadata=OAuthClientMetadata(
                 client_name="Personal Assistant",
