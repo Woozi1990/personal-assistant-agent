@@ -93,7 +93,7 @@ def build_contact_tools(
         )
 
     @tool(args_schema=SearchContactToolInput)
-    async def search_contact(query: str) -> SearchContactToolOutput:
+    async def search_contact(query: str|None) -> SearchContactToolOutput:
         """
         Search the user's saved contacts.
 
@@ -109,7 +109,6 @@ def build_contact_tools(
           - emails: saved email addresses
           - phone_numbers: saved phone numbers
         """
-
         contacts = await contact_provider.search_contact(query)
 
         return SearchContactToolOutput(

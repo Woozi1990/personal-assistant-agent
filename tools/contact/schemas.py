@@ -61,7 +61,8 @@ class UpdateContactToolInput(BaseModel):
 
 
 class SearchContactToolInput(BaseModel):
-    query: str = Field(
+    query: str|None = Field(
+        default=None,
         description=(
             "Name, email address, phone number, organization, "
             "or other known contact information used to search saved contacts."

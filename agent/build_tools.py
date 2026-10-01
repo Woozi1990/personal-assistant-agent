@@ -4,6 +4,7 @@ from providers.google.google_calendar_provider import GoogleCalendarProvider
 from providers.google.google_contact_provider import GoogleContactProvider
 from providers.microsoft.mcp_client import MicrosoftMCPClient
 from providers.microsoft.microsoft_calendar_provider import MicrosoftCalendarProvider
+from providers.microsoft.microsoft_contact_provider import MicrosoftContactProvider
 from tools.calendar.calendar_tools import build_calendar_tools
 from tools.contact.contact_tools import build_contact_tools
 from tools.email.email_tools import build_email_tools
@@ -36,10 +37,12 @@ def build_tools():
         mcp_client=microsoft_mcp_client
     )
 
+    contact_provider = MicrosoftContactProvider(microsoft_mcp_client)
+
 
 
     return [
         *build_calendar_tools(calendar_provider),
-        # *build_contact_tools(contact_provider),
+        *build_contact_tools(contact_provider),
         # *build_email_tools(email_provider)
     ]

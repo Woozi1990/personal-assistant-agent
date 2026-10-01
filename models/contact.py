@@ -16,12 +16,12 @@ class Contact(BaseModel):
         description="Contact's family name."
     )
 
-    emails: list[str] = Field(
-        default_factory=list,
+    emails: list[str] | None = Field(
+        default=None,
         description="Email addresses saved for this contact."
     )
 
-    phone_numbers: list[str] = Field(
-        default_factory=list,
+    phone_numbers: list[str] | None = Field(
+        default=None,
         description="Phone numbers saved for this contact."
     )
