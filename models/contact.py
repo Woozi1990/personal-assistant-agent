@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 
 
 class Contact(BaseModel):
@@ -16,7 +16,7 @@ class Contact(BaseModel):
         description="Contact's family name."
     )
 
-    emails: list[str] | None = Field(
+    emails: list[EmailStr] | None = Field(
         default=None,
         description="Email addresses saved for this contact."
     )

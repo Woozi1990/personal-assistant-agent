@@ -1,4 +1,5 @@
 from langchain_core.tools import BaseTool, tool
+from pydantic import EmailStr, ValidationError
 
 from models.contact import Contact
 from providers.interfaces.contact_provider import ContactProvider
@@ -12,6 +13,17 @@ from tools.contact.schemas import (
     UpdateContactToolOutput,
     DeleteContactToolOutput
 )
+
+
+def handle_contact_validation_error(error: ValidationError) -> str:
+    messages = []
+
+    for item in error.errors():
+        field = ".".join(str(part) for part in item["loc"])
+        message = item["msg"]
+        messages.append(f"{field}: {message}")
+
+    return "Invalid contact information: " + "; ".join(messages)
 
 
 def build_contact_tools(
@@ -50,12 +62,14 @@ def build_contact_tools(
             contact=contact
         )
 
+    create_contact.handle_validation_error = handle_contact_validation_error
+
     @tool(args_schema=UpdateContactToolInput)
     async def update_contact(
             contact_id: str,
             given_name: str | None = None,
             family_name: str | None = None,
-            emails: list[str] | None = None,
+            emails: list[EmailStr] | None = None,
             phone_numbers: list[str] | None = None,
     ) -> UpdateContactToolOutput:
         """
@@ -66,7 +80,6 @@ def build_contact_tools(
 
         This tool requires the existing contact's contact_id.
         It does not create a new contact.
-
 
         Output:
         - success: whether the update completed successfully
@@ -93,7 +106,7 @@ def build_contact_tools(
         )
 
     @tool(args_schema=SearchContactToolInput)
-    async def search_contact(query: str|None) -> SearchContactToolOutput:
+    async def search_contact(query: str | None) -> SearchContactToolOutput:
         """
         Search the user's saved contacts.
 
@@ -115,6 +128,8 @@ def build_contact_tools(
             success=True,
             contacts=contacts
         )
+
+    update_contact.handle_validation_error = handle_contact_validation_error
 
     @tool(args_schema=DeleteContactToolInput)
     async def delete_contact(contact_id: str) -> DeleteContactToolOutput:

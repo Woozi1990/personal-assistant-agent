@@ -2,6 +2,7 @@ import asyncio
 from typing import Any
 
 from googleapiclient.discovery import build
+from pydantic import EmailStr
 
 from models.contact import Contact
 from providers.google.google_auth_service import GoogleAuthService
@@ -89,7 +90,7 @@ class GoogleContactProvider(ContactProvider):
         if contact.emails is not None:
             person["emailAddresses"] = [
                 {
-                    "value": email
+                    "value": str(email)
                 } for email in contact.emails]
             update_fields.append("emailAddresses")
 

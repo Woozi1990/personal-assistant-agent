@@ -1,6 +1,8 @@
 import json
 from typing import Any
 
+from pydantic import EmailStr
+
 from models.contact import Contact
 from providers.interfaces.contact_provider import ContactProvider
 from providers.microsoft.mcp_client import MicrosoftMCPClient

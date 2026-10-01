@@ -66,6 +66,7 @@ class SearchContactToolInput(BaseModel):
         description=(
             "Name, email address, phone number, organization, "
             "or other known contact information used to search saved contacts."
+            "Omit this parameter when the user wants to list all contacts."
         )
     )
 

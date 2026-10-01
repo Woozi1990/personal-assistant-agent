@@ -29,8 +29,12 @@ def build_system_prompt() -> str:
     - If missing information can be obtained using a tool, call that tool instead of asking the user.
     - Use actual information returned by tools when later tool calls depend on it.
     - When no more tools are required, answer the user directly.
+    - Before performing an update or delete action, ensure that the target entity or set of entities is unambiguously identified from the user's request and available information.
+    - If the intended target(s) are ambiguous, ask the user for clarification before performing the action.
+    - Do not assume that all matching search results are intended targets unless the user clearly indicates that the action applies to all of them.
     """
 
+
 @dynamic_prompt
-def dynamic_system_prompt(request:ModelRequest)->str:
+def dynamic_system_prompt(request: ModelRequest) -> str:
     return build_system_prompt()
