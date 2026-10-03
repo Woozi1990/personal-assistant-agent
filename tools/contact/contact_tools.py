@@ -69,7 +69,7 @@ def build_contact_tools(
             contact_id: str,
             given_name: str | None = None,
             family_name: str | None = None,
-            emails: list[EmailStr] | None = None,
+            emails: list[str] | None = None,
             phone_numbers: list[str] | None = None,
     ) -> UpdateContactToolOutput:
         """
@@ -105,6 +105,8 @@ def build_contact_tools(
             contact=updated_contact
         )
 
+    update_contact.handle_validation_error = handle_contact_validation_error
+
     @tool(args_schema=SearchContactToolInput)
     async def search_contact(query: str | None) -> SearchContactToolOutput:
         """
@@ -128,8 +130,6 @@ def build_contact_tools(
             success=True,
             contacts=contacts
         )
-
-    update_contact.handle_validation_error = handle_contact_validation_error
 
     @tool(args_schema=DeleteContactToolInput)
     async def delete_contact(contact_id: str) -> DeleteContactToolOutput:

@@ -5,7 +5,6 @@ from pydantic import BaseModel, Field
 
 class Email(BaseModel):
     id: str = Field(description="The id of the email.")
-    thread_id: str | None = Field(default=None,description="The thread id of the email.")
     draft_id: str | None = Field(default=None,description="The draft id of the email.")
     sender: str | None = Field(default=None,description="The sender of the email.")
     recipients: list[str] | None = Field(default=None,description="The recipients of the email.")

@@ -4,7 +4,8 @@ from models.email import Email
 
 
 class SearchEmailsToolInput(BaseModel):
-    query: str = Field(
+    query: str|None = Field(
+        default=None,
         description=(
             "Search query used to find matching emails. "
             "The query may contain keywords or filters based on "
@@ -16,7 +17,7 @@ class SearchEmailsToolInput(BaseModel):
 class GetEmailToolInput(BaseModel):
     message_id: str = Field(
         description=(
-            "The unique Gmail message ID of the email to retrieve. "
+            "The unique message ID of the email to retrieve. "
             "Use an ID returned by an email search result; do not invent or guess this value."
         )
     )
@@ -41,7 +42,7 @@ class CreateDraftToolInput(BaseModel):
 class UpdateDraftToolInput(BaseModel):
     draft_id: str = Field(
         description=(
-            "The Gmail draft ID of the draft to update. "
+            "The draft ID of the draft to update. "
             "Use only a draft ID returned by an existing tool result. "
             "Do not invent or guess this value."
         )
@@ -71,7 +72,7 @@ class UpdateDraftToolInput(BaseModel):
 class SendEmailToolInput(BaseModel):
     draft_id: str = Field(
         description=(
-            "The unique Gmail draft ID of the draft to send. "
+            "The unique draft ID of the draft to send. "
             "Use an existing draft ID or one returned by create_draft. "
             "Do not use a message ID and do not invent this value."
         )
@@ -100,4 +101,4 @@ class GetEmailToolOutput(BaseModel):
 
 class SendEmailToolOutput(BaseModel):
     success: bool = Field(description="Whether the email send completed successfully.")
-    message_id: str = Field(description="The Gmail message ID of the sent email.")
+    message_id: str = Field(description="The email message ID of the sent email.")

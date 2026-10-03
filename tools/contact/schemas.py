@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 
 from models.contact import Contact
 
@@ -12,7 +12,7 @@ class CreateContactToolInput(BaseModel):
         default=None,
         description="Family or last name of the contact, if provided."
     )
-    emails: list[str] | None = Field(
+    emails: list[EmailStr] | None = Field(
         default=None,
         description=(
             "Email addresses explicitly provided for the contact. "
@@ -44,7 +44,7 @@ class UpdateContactToolInput(BaseModel):
         default=None,
         description="Updated family or last name, if it should be changed."
     )
-    emails: list[str] | None = Field(
+    emails: list[EmailStr] | None = Field(
         default=None,
         description=(
             "Updated email addresses for the contact, if they should be changed. "

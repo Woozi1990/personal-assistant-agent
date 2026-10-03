@@ -16,7 +16,7 @@ def build_email_tools(
         Search the user's mailbox for matching emails.
 
         Use this tool to find emails by keyword, sender, recipient,
-        subject, topic, date, or other Gmail search criteria.
+        subject, topic, date, or other email search criteria.
 
         Returns matching email metadata and message IDs.
 
@@ -25,7 +25,6 @@ def build_email_tools(
         - success: whether the search completed successfully
         - emails: match emails
             - id
-            - thread_id
             - draft_id
             - sender
             - recipients
@@ -53,7 +52,6 @@ def build_email_tools(
         - success: whether the get email completed successfully
         - email: matching Email Message
             - id
-            - thread_id
             - draft_id
             - sender
             - recipients
@@ -89,7 +87,6 @@ def build_email_tools(
         - success: whether the create draft completed successfully
         - draft: created Email draft
             - id
-            - thread_id
             - draft_id
             - sender
             - recipients

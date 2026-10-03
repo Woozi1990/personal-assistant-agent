@@ -85,7 +85,6 @@ class GmailProvider(EmailProvider):
         return Email(
             id=result["message"]["id"],
             draft_id=result["id"],
-            thread_id=result["message"].get("threadId"),
             recipients=recipients,
             subject=subject,
             body=body,
@@ -120,7 +119,6 @@ class GmailProvider(EmailProvider):
             ).execute())
 
         email.id = result["message"]["id"]
-        email.thread_id = result["message"].get("threadId")
 
         return email
 
@@ -160,7 +158,6 @@ class GmailProvider(EmailProvider):
 
         return Email(
             id=message["id"],
-            thread_id=message.get("threadId"),
             sender=sender,
             recipients=recipients,
             subject=headers.get("subject"),
