@@ -107,8 +107,6 @@ class MicrosoftContactProvider(ContactProvider):
             "select": "id,givenName,surname,emailAddresses,businessPhones,homePhones,mobilePhone"
         }
 
-        print(f"Query: {query}")
-
         if query:
             args["search"] = f'"{query}"'
             args["top"] = 10

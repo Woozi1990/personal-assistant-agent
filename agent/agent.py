@@ -45,7 +45,7 @@ class Agent:
     async def invoke(
             self,
             user_input: str,
-            thread_id: str = "default"
+            thread_id: str
     ):
         result = await self._agent.ainvoke(
             {
@@ -65,7 +65,8 @@ class Agent:
             interrupts = result["__interrupt__"]
             return {
                 "status": "interrupted",
-                "interrupts": interrupts
+                "interrupts": interrupts,
+                "messages": result["messages"]
             }
 
         final_message = result["messages"][-1]
@@ -77,8 +78,8 @@ class Agent:
     async def resume(
             self,
             decision: str,
+            thread_id: str,
             message: str | None = None,
-            thread_id: str = "default"
     ):
         if decision == "approve":
             resume_data = {
@@ -127,3 +128,13 @@ class Agent:
             "status": "completed",
             "message": result["messages"][-1].content,
         }
+
+    async def is_interrupted(self, thread_id):
+        config = {
+            "configurable": {
+                "thread_id": thread_id,
+            }
+        }
+
+        state = await self._agent.aget_state(config)
+        return bool(state.interrupts)

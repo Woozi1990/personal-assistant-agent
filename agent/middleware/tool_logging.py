@@ -14,9 +14,9 @@ class ToolCallingMiddleware(AgentMiddleware):
     ) -> ToolMessage | Command:
         tool_call = request.tool_call
 
-        print(f"Tool: {tool_call['name']}")
-        print(f"Arguments: {tool_call['args']}")
+        # print(f"Tool: {tool_call['name']}")
+        # print(f"Arguments: {tool_call['args']}")
 
         result = await handler(request)
-        print(f"Result: {result}")
+        # print(f"Result: {result}")
         return result
