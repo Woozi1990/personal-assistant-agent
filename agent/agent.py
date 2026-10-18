@@ -11,11 +11,16 @@ from agent.build_tools import build_tools
 from agent.middleware.tool_logging import ToolCallingMiddleware
 from agent.prompt import dynamic_system_prompt
 
-from config import AZURE_OPENAI_API_KEY, AZURE_OPENAI_MODEL, AZURE_OPENAI_BASE_URL
+from config import AZURE_OPENAI_API_KEY, AZURE_OPENAI_MODEL, AZURE_OPENAI_BASE_URL, require_config
 
 
 class Agent:
     def __init__(self):
+        require_config(
+            AZURE_OPENAI_API_KEY=AZURE_OPENAI_API_KEY,
+            AZURE_OPENAI_BASE_URL=AZURE_OPENAI_BASE_URL,
+            AZURE_OPENAI_MODEL=AZURE_OPENAI_MODEL,
+        )
         self._llm = ChatOpenAI(
             api_key=AZURE_OPENAI_API_KEY,
             base_url=AZURE_OPENAI_BASE_URL,

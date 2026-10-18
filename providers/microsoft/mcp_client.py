@@ -12,7 +12,7 @@ from mcp.client.streamable_http import streamable_http_client
 from mcp.shared.auth import OAuthToken, OAuthClientInformationFull, OAuthClientMetadata
 from pydantic import AnyUrl
 
-from config import MS365_MCP_URL, MS365_CALLBACK_URL
+from config import MS365_MCP_URL, MS365_CALLBACK_URL, require_config
 
 CALLBACK_HOST = "127.0.0.1"
 CALLBACK_PORT = 8080
@@ -130,10 +130,16 @@ class PersistentOAuthClientProvider(OAuthClientProvider):
 
 class MicrosoftMCPClient:
     def __init__(self, url: str = MS365_MCP_URL):
+        require_config(
+            MS365_MCP_URL=url,
+        )
         self._url = url
         self.storage = FileTokenStorage()
 
     def _create_oauth_provider(self) -> OAuthClientProvider:
+        require_config(
+            MS365_CALLBACK_URL=MS365_CALLBACK_URL,
+        )
         return PersistentOAuthClientProvider(
             server_url=self._url,
             client_metadata=OAuthClientMetadata(

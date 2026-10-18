@@ -4,7 +4,7 @@ from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel
 
-from config import AZURE_OPENAI_API_KEY, AZURE_OPENAI_BASE_URL, AZURE_OPENAI_MODEL
+from config import AZURE_OPENAI_API_KEY, AZURE_OPENAI_BASE_URL, AZURE_OPENAI_MODEL, require_config
 
 
 class ConfirmationDecision(BaseModel):
@@ -13,6 +13,11 @@ class ConfirmationDecision(BaseModel):
 
 class Confirmation:
     def __init__(self):
+        require_config(
+            AZURE_OPENAI_API_KEY=AZURE_OPENAI_API_KEY,
+            AZURE_OPENAI_BASE_URL=AZURE_OPENAI_BASE_URL,
+            AZURE_OPENAI_MODEL=AZURE_OPENAI_MODEL,
+        )
         self._llm = ChatOpenAI(
             api_key=AZURE_OPENAI_API_KEY,
             base_url=AZURE_OPENAI_BASE_URL,
