@@ -21,10 +21,10 @@ class ChatResponse(BaseModel):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    app.state.assistant = AssistantService()
+async def lifespan(application: FastAPI):
+    application.state.assistant = AssistantService()
     yield
-    del app.state.assistant
+    del application.state.assistant
 
 
 app = FastAPI(
