@@ -31,20 +31,39 @@ class Confirmation:
             temperature=0.0,
         ).with_structured_output(ConfirmationDecision)
 
-    async def invoke(self, user_input: str) -> ConfirmationDecision:
+    async def invoke(self, user_input: str, pending_action: dict) -> ConfirmationDecision:
         prompt = """
-        Determine whether the user's response approves or rejects a pending action.
-        
-        Return:
-        - approve: the user clearly agrees to execute the action.
-        - reject: the user clearly refuses or cancels the action.
-        - other: the user does neither, including asking another 
-        question, making another request, or requesting changes.
+        You are a confirmation intent classifier for an AI assistant.
+        The assistant has a pending action that requires user approval.
+        Classify the user's latest message into one of three decisions:
+
+        approve:
+        The user explicitly authorizes the pending action.
+
+        reject:
+        The user explicitly refuses or cancels the pending action.
+
+        other:
+        The user makes a new request, asks a question, requests
+        modifications, or does not clearly approve or reject
+        the pending action.
+
+        Rules:
+        - Classify the user's intent, not individual keywords.
+        - An instruction to perform an action is not automatically
+          approval of a previously pending action.
+        - A new request must not be interpreted as approval merely
+          because it involves the same tool or type of operation.
+        - Approval must clearly refer to the pending action.
+        - If the user's intent is uncertain, classify it as "other".
         """
 
         return await self._decision_llm.ainvoke([
             SystemMessage(content=prompt),
-            HumanMessage(content=user_input)
+            HumanMessage(content=(
+                f"Pending action:\n{pending_action}\n\n"
+                f"User response:\n{user_input}"
+            ))
         ])
 
     async def format_message(

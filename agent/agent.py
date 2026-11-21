@@ -86,6 +86,7 @@ class Agent:
             thread_id: str,
             message: str | None = None,
     ):
+
         if decision == "approve":
             resume_data = {
                 "decisions": [{
@@ -96,7 +97,7 @@ class Agent:
             resume_data = {
                 "decisions": [{
                     "type": "reject",
-                    "message": (
+                    "message": message or (
                         "The user explicitly rejected this action. "
                         "Treat the action as cancelled. "
                         "Do not retry it or ask for confirmation again. "
@@ -104,15 +105,11 @@ class Agent:
                     ),
                 }]
             }
-        elif decision == "respond":
-            resume_data = {
-                "decisions": [{
-                    "type": "respond",
-                    "message": message or "The user did not make an approval or rejection decision for this action. Do not execute it."
-                }]
-            }
         else:
             raise ValueError(f"Unsupported decision: {decision}")
+
+        print("DEBUG: Agent.resume decision =", decision)
+        print("DEBUG: resume_data =", resume_data)
 
         result = await self._agent.ainvoke(
             Command(resume=resume_data),
@@ -127,6 +124,7 @@ class Agent:
             return {
                 "status": "interrupted",
                 "interrupts": result["__interrupt__"],
+                "messages": result["messages"]
             }
 
         return {
@@ -134,7 +132,7 @@ class Agent:
             "message": result["messages"][-1].content,
         }
 
-    async def is_interrupted(self, thread_id):
+    async def is_interrupted(self, thread_id: str):
         config = {
             "configurable": {
                 "thread_id": thread_id,
@@ -143,3 +141,24 @@ class Agent:
 
         state = await self._agent.aget_state(config)
         return bool(state.interrupts)
+
+    async def get_pending_action(self, thread_id: str) -> dict | None:
+        config = {
+            "configurable": {
+                "thread_id": thread_id,
+            }
+        }
+
+        state = await self._agent.aget_state(config)
+
+        if not state.interrupts:
+            return None
+
+        interrupt = state.interrupts[0]
+
+        action_requests = interrupt.value.get("action_requests", [])
+
+        if not action_requests:
+            return None
+
+        return action_requests[0]
